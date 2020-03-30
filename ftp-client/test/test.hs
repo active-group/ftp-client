@@ -68,6 +68,17 @@ main = hspec $ do
                 ] Clear
             sendCommand h (User "megan") `shouldReturn` expected
             takeMVar (thmSend mvars) `shouldReturn` [C.pack "USER megan\r\n"]
+        it "sends USER for User and handles differently formatted multiline messages" $ do
+            let expected = FTPResponse
+                    F.Success 220
+                    (MultiLine [C.pack "line1", C.pack "220-line2", C.pack "220 line3"])
+            (TestHandle mvars h) <- testHandle []
+                [ C.pack "220-line1\r\n"
+                , C.pack "220-line2\r\n"
+                , C.pack "220 line3\r\n"
+                ] Clear
+            sendCommand h (User "megan") `shouldReturn` expected
+            takeMVar (thmSend mvars) `shouldReturn` [C.pack "USER megan\r\n"]
     describe "Network.FTP.Client.recvAll" $
         it "doesn't hang on empty response" $ do
             let expected = C.pack ""

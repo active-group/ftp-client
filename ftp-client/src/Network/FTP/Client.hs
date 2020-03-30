@@ -92,7 +92,7 @@ debugResponse s = debugPrint $ "Recieved: " <> show s
 
 data Security = Clear | TLS
 
--- | Can send and recieve a 'Data.ByteString.ByteString'.
+-- | Can send and receive a 'Data.ByteString.ByteString'.
 data Handle = Handle
     { send :: ByteString -> IO ()
     , sendLine :: ByteString -> IO ()
@@ -269,7 +269,12 @@ loopMultiLine h code lines = do
     nextLine <- liftIO $ getLineResp h
     let newLines = lines <> [C.dropWhile (== ' ') nextLine]
         nextCode = C.take 3 nextLine
-    if nextCode == code
+        -- we only want to stop reading when the code we started
+        -- with appears again AND the next character is a space.
+        -- this is to be able to read "protected replies", see
+        -- RFC 2228, section 5.2.
+        stop = nextCode == code && C.index nextLine 3 == ' '
+    if stop
         then return newLines
         else loopMultiLine h code newLines
 
